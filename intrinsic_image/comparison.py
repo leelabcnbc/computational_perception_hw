@@ -2,7 +2,7 @@ import numpy as np
 import os
 import sys
 import skimage.transform
-import html
+import myhtml
 import intrinsic
 from skimage import color
 import imageio
@@ -12,12 +12,12 @@ import matplotlib.pyplot as plt
 # (not included here), we used two-fold cross-validation with the following
 # randomly chosen split.
 
-'''
+
 SET1 = ['box', 'cup1', 'cup2', 'dinosaur', 'panther', 'squirrel', 'sun', 'teabag2']
 SET2 = ['deer', 'frog1', 'frog2', 'paper1', 'paper2', 'raccoon', 'teabag1', 'turtle']
 ALL_TAGS = SET1 + SET2
-'''
-ALL_TAGS = ['teabag1']
+
+# ALL_TAGS = ['teabag1']
 # The following four objects weren't used in the evaluation because they have
 # slight problems, but you may still find them useful.
 EXTRA_TAGS = ['apple', 'pear', 'phone', 'potato']
@@ -32,6 +32,7 @@ if USE_L1:
 else:
     RESULTS_DIR = 'results'
 
+os.makedirs(RESULTS_DIR, exist_ok=True)
 
 def print_dot(i, num):
     NEWLINE_EVERY = 50
@@ -82,29 +83,29 @@ def run_experiment():
                   '''
     estimators = [('Color Retinex (COL-RET)', intrinsic.ColorRetinexEstimator)]
 
-    
-    tag = ALL_TAGS[0]
-    ntags = len(tag)
-    gen = html.Generator('Intrinsic image results', RESULTS_DIR)
-    
-    for e, (name, EstimatorClass) in enumerate(estimators):
-        inp = EstimatorClass.get_input(tag)
-        inp = inp + (USE_L1,)
-        choices = EstimatorClass.param_choices()
-        image = intrinsic.load_object(tag, 'diffuse')
-       
-        image = color.gray2rgb(image)
+    gen = myhtml.Generator('Intrinsic image results', RESULTS_DIR)
+    for tag in ALL_TAGS:
+        # tag = ALL_TAGS
+        ntags = len(tag)
+        
+        for e, (name, EstimatorClass) in enumerate(estimators):
+            inp = EstimatorClass.get_input(tag)
+            inp = inp + (USE_L1,)
+            choices = EstimatorClass.param_choices()
+            image = intrinsic.load_object(tag, 'diffuse')
+        
+            image = color.gray2rgb(image)
 
-        image = np.mean(image, axis=2)
-        mask = intrinsic.load_object(tag, 'mask')
-        mask = imageio.imread(os.path.join("data", tag, "mask.png"))
-        mask = color.rgb2gray(mask)
+            image = np.mean(image, axis=2)
+            mask = intrinsic.load_object(tag, 'mask')
+            mask = imageio.imread(os.path.join("data", tag, "mask.png"))
+            mask = color.rgb2gray(mask)
 
-        params = choices[0]
-        estimator = EstimatorClass(**params)
-        est_shading, est_refl = estimator.estimate_shading_refl(*inp)
+            params = choices[0]
+            estimator = EstimatorClass(**params)
+            est_shading, est_refl = estimator.estimate_shading_refl(*inp)
 
-        save_estimates(gen, image, est_shading, est_refl, mask)
+            save_estimates(gen, image, est_shading, est_refl, mask)
     
 if __name__ == '__main__':
     run_experiment()
